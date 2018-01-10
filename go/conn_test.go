@@ -139,7 +139,7 @@ func ConnTest(t *testing.T, unstable, encrypt, reconn bool) {
 		}
 
 		if _, err := conn.Write(b); err != nil {
-			t.Fatalf("write failed: %s", err.Error())
+			t.Fatalf("write failed %d: %s", i, err.Error())
 			return
 		}
 
@@ -149,7 +149,7 @@ func ConnTest(t *testing.T, unstable, encrypt, reconn bool) {
 
 		a := make([]byte, len(b))
 		if _, err := io.ReadFull(conn, a); err != nil {
-			t.Fatalf("read failed: %s", err.Error())
+			t.Fatalf("read failed %d: %s", i, err.Error())
 			return
 		}
 
