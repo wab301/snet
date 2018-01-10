@@ -367,6 +367,7 @@ func (c *Conn) handleReconn(conn net.Conn, writeCount, readCount uint64) {
 			conn.RemoteAddr(), writeCount, readCount, c.writeCount, c.readCount)
 
 		conn.Write(buf[:])
+		conn.Close()
 		return
 	}
 
@@ -375,6 +376,7 @@ func (c *Conn) handleReconn(conn net.Conn, writeCount, readCount uint64) {
 	rand.Read(field3)
 	if _, err := conn.Write(buf[:]); err != nil {
 		c.trace("reconn response failed")
+		conn.Close()
 		return
 	}
 
@@ -383,6 +385,7 @@ func (c *Conn) handleReconn(conn net.Conn, writeCount, readCount uint64) {
 	var buf2 [16]byte
 	if _, err := io.ReadFull(conn, buf2[:]); err != nil {
 		c.trace("read reconn check failed: %s", err)
+		conn.Close()
 		return
 	}
 
@@ -392,6 +395,7 @@ func (c *Conn) handleReconn(conn net.Conn, writeCount, readCount uint64) {
 	md5sum := hash.Sum(nil)
 	if !bytes.Equal(buf2[:], md5sum) {
 		c.trace("reconn check not equals: %x, %x", buf2[:], md5sum)
+		conn.Close()
 		return
 	}
 
@@ -456,7 +460,7 @@ func (c *Conn) tryReconn(badConn net.Conn) {
 
 		c.trace("send reconn pre request")
 		if _, err = conn.Write(preBuf[:]); err != nil {
-			c.trace("write pre request failed: %v", err)
+			c.trace("pre write failed: %v", err)
 			conn.Close()
 			continue
 		}
@@ -478,7 +482,7 @@ func (c *Conn) tryReconn(badConn net.Conn) {
 		readCount := binary.LittleEndian.Uint64(buf2[8:16])
 		challengeCode := binary.LittleEndian.Uint64(buf2[16:24])
 		if writeCount == 0 && readCount == 0 && challengeCode == 0 {
-			c.trace("The server refused to reconnect")
+			c.trace("Data corruption, cannot be reconnected")
 			conn.Close()
 			c.Close()
 			break
@@ -490,7 +494,7 @@ func (c *Conn) tryReconn(badConn net.Conn) {
 		hash.Write(c.key[:])
 		copy(buf3[:], hash.Sum(nil))
 		if _, err = conn.Write(buf3[:]); err != nil {
-			c.trace("write reconn check response failed: %v", err)
+			c.trace("reconn check write failed: %v", err)
 			conn.Close()
 			continue
 		}
@@ -508,14 +512,12 @@ func (c *Conn) tryReconn(badConn net.Conn) {
 			c.Close()
 			break
 		}
-
 		if int(c.writeCount-readCount) > len(c.rewriter.data) {
 			c.trace("c.writeCount - readCount > len(c.rewriter.data)")
 			conn.Close()
 			c.Close()
 			break
 		}
-
 		if c.doReconn(conn, writeCount, readCount) {
 			done = true
 			break
