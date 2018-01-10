@@ -71,7 +71,7 @@ func ConnTest(t *testing.T, unstable, encrypt, reconn bool) {
 	}
 
 	listener, err := Listen(config, func() (net.Listener, error) {
-		l, err := net.Listen("tcp", "0.0.0.0:0")
+		l, err := net.Listen("tcp", ":")
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +138,7 @@ func ConnTest(t *testing.T, unstable, encrypt, reconn bool) {
 			copy(c, b)
 		}
 
-		if _, err := conn.Write(b); err != nil {
+		if _, err := conn.Write(b); err != nil && err != io.EOF {
 			t.Fatalf("write failed %d: %s", i, err.Error())
 			return
 		}
@@ -148,7 +148,7 @@ func ConnTest(t *testing.T, unstable, encrypt, reconn bool) {
 		}
 
 		a := make([]byte, len(b))
-		if _, err := io.ReadFull(conn, a); err != nil {
+		if _, err := io.ReadFull(conn, a); err != nil && err != io.EOF {
 			t.Fatalf("read failed %d: %s", i, err.Error())
 			return
 		}
@@ -209,7 +209,7 @@ func ConnTestException(t *testing.T, errorType int) {
 	}
 
 	listener, err := Listen(config, func() (net.Listener, error) {
-		l, err := net.Listen("tcp", "0.0.0.0:0")
+		l, err := net.Listen("tcp", ":")
 		if err != nil {
 			return nil, err
 		}
