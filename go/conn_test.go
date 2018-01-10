@@ -132,7 +132,7 @@ func ConnTest(t *testing.T, unstable, encrypt, reconn bool) {
 
 	conn.(*Conn).SetReconnWaitTimeout(config.ReconnWaitTimeout)
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100000; i++ {
 		b := RandBytes(100)
 		c := b
 		if encrypt {
@@ -252,7 +252,7 @@ func ConnTestException(t *testing.T, errorType int) {
 	}
 	defer conn.Close()
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100000; i++ {
 		b := RandBytes(100)
 
 		if _, err := conn.Write(b); err != nil {
