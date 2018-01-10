@@ -497,17 +497,16 @@ func (c *Conn) tryReconn(badConn net.Conn) {
 
 		if writeCount < c.readCount {
 			c.trace("writeCount < c.readCount")
-			return
+			conn.Close()
+			c.Close()
+			break
 		}
 
 		if c.writeCount < readCount {
 			c.trace("c.writeCount < readCount")
-			return
-		}
-
-		if int(c.writeCount-readCount) > len(c.rewriter.data) {
-			c.trace("c.writeCount - readCount > len(c.rewriter.data)")
-			return
+			conn.Close()
+			c.Close()
+			break
 		}
 
 		if c.doReconn(conn, writeCount, readCount) {
@@ -515,6 +514,7 @@ func (c *Conn) tryReconn(badConn net.Conn) {
 			break
 		}
 		conn.Close()
+
 	}
 }
 
