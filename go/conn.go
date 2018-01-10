@@ -509,6 +509,13 @@ func (c *Conn) tryReconn(badConn net.Conn) {
 			break
 		}
 
+		if int(c.writeCount-readCount) > len(c.rewriter.data) {
+			c.trace("c.writeCount - readCount > len(c.rewriter.data)")
+			conn.Close()
+			c.Close()
+			break
+		}
+
 		if c.doReconn(conn, writeCount, readCount) {
 			done = true
 			break
