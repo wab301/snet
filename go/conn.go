@@ -495,12 +495,19 @@ func (c *Conn) tryReconn(badConn net.Conn) {
 			continue
 		}
 
-		if writeCount < c.readCount || c.writeCount < readCount ||
-			int(c.writeCount-readCount) > len(c.rewriter.data) {
-			c.trace("Data corruption, cannot be reconnected")
-			conn.Close()
-			c.Close()
-			break
+		if writeCount < c.readCount {
+			c.trace("writeCount < c.readCount")
+			return
+		}
+
+		if c.writeCount < readCount {
+			c.trace("c.writeCount < readCount")
+			return
+		}
+
+		if int(c.writeCount-readCount) > len(c.rewriter.data) {
+			c.trace("c.writeCount - readCount > len(c.rewriter.data)")
+			return
 		}
 
 		if c.doReconn(conn, writeCount, readCount) {
