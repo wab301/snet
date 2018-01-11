@@ -71,7 +71,7 @@ func ConnTest(t *testing.T, unstable, encrypt, reconn bool) {
 	}
 
 	listener, err := Listen(config, func() (net.Listener, error) {
-		l, err := net.Listen("tcp", ":")
+		l, err := net.Listen("tcp", "0.0.0.0:0")
 		if err != nil {
 			return nil, err
 		}
@@ -130,6 +130,9 @@ func ConnTest(t *testing.T, unstable, encrypt, reconn bool) {
 	err = conn.SetWriteDeadline(time.Time{})
 	utest.IsNilNow(t, err)
 
+	conn.(*Conn).SetReconnWaitTimeout(config.ReconnWaitTimeout)
+
+	time.Sleep(100 * time.Millisecond)
 	for i := 0; i < 100000; i++ {
 		b := RandBytes(100)
 		c := b
@@ -139,7 +142,7 @@ func ConnTest(t *testing.T, unstable, encrypt, reconn bool) {
 		}
 
 		if _, err := conn.Write(b); err != nil {
-			t.Fatalf("write failed %d: %s", i, err.Error())
+			t.Fatalf("write failed: %s", err.Error())
 			return
 		}
 
@@ -149,7 +152,7 @@ func ConnTest(t *testing.T, unstable, encrypt, reconn bool) {
 
 		a := make([]byte, len(b))
 		if _, err := io.ReadFull(conn, a); err != nil {
-			t.Fatalf("read failed %d: %s", i, err.Error())
+			t.Fatalf("read failed: %s", err.Error())
 			return
 		}
 
@@ -209,7 +212,7 @@ func ConnTestException(t *testing.T, errorType int) {
 	}
 
 	listener, err := Listen(config, func() (net.Listener, error) {
-		l, err := net.Listen("tcp", ":")
+		l, err := net.Listen("tcp", "0.0.0.0:0")
 		if err != nil {
 			return nil, err
 		}
@@ -250,28 +253,26 @@ func ConnTestException(t *testing.T, errorType int) {
 	}
 	defer conn.Close()
 
-	for i := 0; i < 100000; i++ {
-		b := RandBytes(100)
+	b := RandBytes(100)
 
-		if _, err := conn.Write(b); err != nil {
-			t.Fatalf("write failed: %s", err.Error())
-			return
-		}
+	if _, err := conn.Write(b); err != nil {
+		t.Fatalf("write failed: %s", err.Error())
+		return
+	}
 
-		switch errorType {
-		case 1:
-			conn.(*Conn).writeCount += uint64(config.RewriterBufferSize) + 1
-		case 2:
-			conn.(*Conn).id++
-		case 3:
-			conn.(*Conn).key[0] = byte(0)
-		}
-		conn.(*Conn).TryReconn()
+	switch errorType {
+	case 1:
+		conn.(*Conn).writeCount += uint64(config.RewriterBufferSize) + 1
+	case 2:
+		conn.(*Conn).id++
+	case 3:
+		conn.(*Conn).key[0] ^= byte(99)
+	}
+	conn.(*Conn).TryReconn()
 
-		a := make([]byte, len(b))
-		if _, err := io.ReadFull(conn, a); err == nil {
-			t.Fatalf("check has error")
-		}
+	a := make([]byte, len(b))
+	if _, err := io.ReadFull(conn, a); err == nil {
+		t.Fatalf("check has error")
 		return
 	}
 
